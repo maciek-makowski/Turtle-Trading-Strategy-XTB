@@ -1,6 +1,6 @@
 import requests
 
-# URL of the web service endpoint
+# Script for flushing the database
 URL = "https://signals-db-234640427180.europe-central2.run.app/"
 
 

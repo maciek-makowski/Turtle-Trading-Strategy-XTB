@@ -49,6 +49,12 @@ def add_signal_to_db(purchase_signal):
     # print("Response JSON:", response.json())
     return response.json()
 
+def flush_db():
+    response = requests.post(URL + "/flush_database")
+
+    print("Status Code:", response.status_code) 
+    print("Response JSON:", response.json())
+    return response.json()
 
 def modify_signal_data(purchase_signal):
     '''
@@ -91,7 +97,6 @@ def calc_donchain(data):
     data['lower'] = temp['Low'].rolling(window = 10).min()
     
     return data
-
 
 def get_nasdaq_tickers(file_loc):
     tickers = pd.read_csv(file_loc)
@@ -238,51 +243,6 @@ def hello_pubsub(event, context):
     pubsub_message = base64.b64decode(event['data']).decode('utf-8')
     print("PB mes ", pubsub_message)
 
-    tickers = get_nasdaq_tickers()
-
-
-    API = XTB(ID, PASSWORD)
-
-    active_signals = []
-    trades = API.get_trades()
-
-    for i in trades: 
-        active_signals.append(i['symbol'])
-
-    unique_symbols = set(active_signals)
-    for symbol in unique_symbols:
-        time.sleep(0.2)
-        API.check_take_profit(symbol, trades, calc_SL_new3)
-
-    today = datetime.now()
-    start_day = today - timedelta(40)
-    no_buy_singals, open_positions = generate_buy_signal(tickers, start_day, today, unique_symbols)
-
-    print("Day", today, "No_buy_singals", no_buy_singals)
-
-
-    for position in open_positions:
-        print(position)
-        symbol = position['ticker'] + ".US_9"
-
-        
-        time.sleep(0.2)
-        total_capital, free_funds = API.get_balance()
-        print("Total capital", total_capital, "Free funds", free_funds)
-        volume = API.calc_position_size(position['risk'], position['opening_price'], total_capital, free_funds)
-        if volume == 0:
-            print("Volume for the position is 0" )
-        if volume > 0 :   
-            API.open_pkc(symbol, volume, comment=str(round(position['take_profit'],2)))
-            print("Opening position", position, "With volume", volume)
-            time.sleep(5)
-            print("What can be wrong with the rounded stop loss",  round(position['stop_loss'],2))
-            API.set_stop_loss(symbol, volume, round(position['stop_loss'],2))
-
-    API.logout()
-
-
-def main():
     tickers = get_nasdaq_tickers("./ticker_lists/us100_tickers.csv")
 
     API = XTB(ID, PASSWORD)
@@ -353,10 +313,7 @@ def main():
 
     API.logout()
 
-
 if __name__ == "__main__":
-    main()
-# if __name__ == "__main__":
-#     hello_pubsub('data','context')
+    hello_pubsub('data','context')
 
 
