@@ -58,8 +58,8 @@ class XTB:
     ### WEB SOCKETS ####
     def connect(self):
         try:
-            #self.ws = websocket.create_connection("wss://ws.xtb.com/demo")
-            self.ws = websocket.create_connection("wss://ws.xtb.com/real")
+            self.ws = websocket.create_connection("wss://ws.xtb.com/demo")
+            # self.ws = websocket.create_connection("wss://ws.xtb.com/real")
             print("WebSocket connection successful.")
             print(f"WebSocket object: {self.ws}")
             print(f"WebSocket status: {self.ws.status}")
@@ -85,6 +85,24 @@ class XTB:
         result = self.ws.recv()
         
         return result + "\n"
+    
+    def get_symbol(self, ticker):
+        message = {
+	        "command": "getSymbol",
+	        "arguments": {
+		    "symbol": f"{ticker}"
+	        }
+        }
+        message = json.dumps(message)
+        result = self.send(message)
+        result = json.loads(result)
+        return result
+    
+    def get_current_price(self,ticker):
+        result = self.get_symbol(ticker)
+        return result['returnData']['ask']
+
+
     
     def get_all_symbols(self):
         tickers = {
@@ -208,8 +226,17 @@ class XTB:
         make_trade = json.dumps(message)
         result = self.send(make_trade)
         result = json.loads(result)
-
-        return result
+        
+        message_to_verify = {
+            "command": "tradeTransactionStatus",
+            "arguments": {
+                "order": result['returnData']['order']
+        	}
+        }
+        make_verification = json.dumps(message_to_verify)
+        result = self.send(make_verification)
+        result = json.loads(result)
+        return result['status']
     
     def close_pkc(self, order, ticker, sl_order, volume, comment = ""):
         self.delete_stop_loss(ticker, sl_order)
@@ -325,7 +352,6 @@ class XTB:
             if trade['cmd'] == 5 and trade['symbol'] == ticker:
                 sl_order = trade['order2']
                 print("trade", trade)
-
                 print("SL order", sl_order)
                 last_stop_loss = trade['open_price']
 
